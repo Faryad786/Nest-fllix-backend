@@ -1,6 +1,8 @@
-import { Controller, Get, Param, Query, Res, HttpStatus, HttpException, Delete } from '@nestjs/common';
+import { Controller, Get, Param, Query, Res, HttpStatus, HttpException, Delete, Body, HttpCode, Post } from '@nestjs/common';
 import { MoviesService } from './movies.service';
 import { Response } from 'express';
+import { Scraping } from './movies.model';
+import { CreateMovieDto } from './movies.dto';
 
 @Controller('api/tmdb')
 export class MoviesController {
@@ -42,6 +44,7 @@ export class MoviesController {
     }
   }
 
+
   @Get('movie/:movieId/videos')
   async getMovieVideos(@Param('movieId') movieId: string, @Res() res: Response) {
     try {
@@ -53,6 +56,9 @@ export class MoviesController {
         .json({ message: error.message });
     }
   }
+
+
+ 
   @Get('genres')
   async getGenres() {
     return this.tmdbService.getGenres();
@@ -91,10 +97,10 @@ export class MoviesController {
 
   @Get('punjabi-movies')
   async getPunjabiMovies(
-    @Query('page') page = 1, // Default page is 1
-    @Query('limit') limit = 10, // Default limit is 10
+    // @Query('page') page , // Default page is 1
+    // @Query('limit') limit , // Default limit is 10
   ) {
-    const result = await this.tmdbService.moviesByLanguage(page, limit);
+    const result = await this.tmdbService.moviesByLanguage();
 
     if (!result || result.length === 0) {
       throw new HttpException('Punjabi movies not found', HttpStatus.NOT_FOUND);
@@ -104,19 +110,40 @@ export class MoviesController {
   }
   @Get('hindi-movies')
   async getHindiMovies(
-    @Query('page') page = 1, // Default page is 1
-    @Query('limit') limit = 30, // Default limit is 10
+    // @Query('page') page , // Default page is 1
+    // @Query('limit') limit, // Default limit is 10
   ) {
-    const result = await this.tmdbService.HindiByLanguage(page, limit);
+    const result = await this.tmdbService.HindiByLanguage();
 
     if (!result || result.length === 0) {
-      throw new HttpException('Punjabi movies not found', HttpStatus.NOT_FOUND);
+      throw new HttpException('Hindi movies not found', HttpStatus.NOT_FOUND);
     }
 
-    return { message: 'Punjabi movies retrieved successfully', result };
+    return { message: 'Hindi movies retrieved successfully', result };
+  }
+
+   
+  @Delete('/delete')
+  async deleteData(@Res() res: Response) {
+    try {
+      await this.tmdbService.deleteMovies();
+      return res
+        .status(HttpStatus.OK)
+        .json({ message: 'All movies deleted successfully' });
+    } catch (error) {
+      return res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ message: 'Failed to delete movies', error: error.message });
+    }
   }
 
 
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  async createMovie(@Body() createMovieDto: CreateMovieDto): Promise<Scraping> {
+    return await this.tmdbService.createMovie(createMovieDto);
   }
+  
+}
 
 
