@@ -227,4 +227,10 @@ constructor(
   }
 
 
+  async engetall() {
+
+    return this.scrapingModel
+      .find({ language: 'English' })
+     .exec();  }
+
 }

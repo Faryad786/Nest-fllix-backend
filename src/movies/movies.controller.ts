@@ -137,12 +137,27 @@ export class MoviesController {
     }
   }
 
-
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async createMovie(@Body() createMovieDto: CreateMovieDto): Promise<Scraping> {
     return await this.tmdbService.createMovie(createMovieDto);
   }
+
+
+  @Get('english-movies')
+  async getEnglishMovies(
+    // @Query('page') page , // Default page is 1
+    // @Query('limit') limit, // Default limit is 10
+  ) {
+    const result = await this.tmdbService.engetall();
+
+    if (!result || result.length === 0) {
+      throw new HttpException('Hindi movies not found', HttpStatus.NOT_FOUND);
+    }
+
+    return { message: 'Hindi movies retrieved successfully', result };
+  }
+
   
 }
 
