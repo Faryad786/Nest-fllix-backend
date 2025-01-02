@@ -58,6 +58,42 @@ export class MoviesController {
   }
 
 
+@Get('movie/:movieId/videos')
+  async getMovieTrailerWall(@Param('movieId') movieId: string, @Res() res: Response) {
+    try {
+      const data = await this.tmdbService.getMovieTrailerWall(movieId);
+      return res.status(HttpStatus.OK).json(data);
+    } catch (error) {
+      return res
+        .status(error.status || HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ message: error.message });
+    }
+  }
+
+  @Get('all-trailers')
+  async getAllMoviesWithTrailers(@Query('page') page: number, @Res() res: Response) {
+    try {
+      const movies = await this.tmdbService.getAllMovies(page);
+
+      const moviesWithTrailers = await Promise.all(
+        movies.results.map(async (movie) => {
+          const trailer = await this.tmdbService.getMovieTrailerWall(movie.id);
+          return trailer ? { ...movie, trailer } : null;
+        })
+      );
+
+      const filteredMovies = moviesWithTrailers.filter((movie) => movie !== null);
+
+      return res.status(HttpStatus.OK).json(filteredMovies);
+    } catch (error) {
+      return res
+        .status(error.status || HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ message: error.message });
+    }
+  }
+  
+
+
  
   @Get('genres')
   async getGenres() {
@@ -69,6 +105,7 @@ export class MoviesController {
   async getMoviesByGenre(@Param('id') id: number) {
     return this.tmdbService.getMoviesByGenre(id);
   }
+
 
   @Get("all")
   async getAllMovies(@Query('page') page: number) {
@@ -156,6 +193,15 @@ export class MoviesController {
     }
 
     return { message: 'Hindi movies retrieved successfully', result };
+  }
+
+  @Get(':movieId/recommendations')
+  async getRecommendations(
+    @Param('movieId') movieId: string,
+    @Query('language') language: string = 'en-US',
+    @Query('page') page: number = 1,
+  ) {
+    return await this.tmdbService.getRecommendations(movieId, language, page);
   }
 
   

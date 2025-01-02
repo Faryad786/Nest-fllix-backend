@@ -7,6 +7,8 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { SeasonsModule } from './seasons/seasons.module';
 import {SeasonSchema} from './seasons/season.model'
 import  {episodeSchema} from './seasons/Episode.model'
+import { WatchHistoryModule } from './recommendations/recommendations.module';
+import { watchHistorySchema } from './recommendations/watchHistroy.model';
  
 @Module({
   imports: [
@@ -15,11 +17,13 @@ import  {episodeSchema} from './seasons/Episode.model'
           { name: 'scraping', schema: scrapingSchema },
           { name: 'Season', schema: SeasonSchema },
           { name: 'Episode', schema: episodeSchema },
+          { name: 'WatchHistory', schema: watchHistorySchema },
 
   
         ]),
     MoviesModule,
-    SeasonsModule
+    SeasonsModule,
+    WatchHistoryModule
 
   ],
   controllers: [AppController],

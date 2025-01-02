@@ -129,6 +129,47 @@ constructor(
     }
   }
   
+
+  async getMovieTrailerWall(movieId: string): Promise<any> {
+    try {
+  
+      const response = await axios.get(`${this.BASE_URL}/movie/${movieId}/videos`, {
+        headers: {
+          Authorization: this.API_TOKEN,
+          accept: 'application/json',
+        },
+      });
+  
+      const trailers = response.data.results.filter(
+        (video) =>
+          video.type === 'Trailer' &&
+          video.site === 'YouTube' &&
+          video.official &&
+          video.iso_639_1 === 'en' // Ensure the trailer is in English
+      );
+  
+      if (trailers.length > 0) {
+        // const links = `https://www.youtube.com/embed/${trailers[0].key}`;
+        return {
+          source: 'tmdb',
+          trailer: { id: trailers[0].key }
+        };
+      }
+  
+      // Default fallback trailer link if no official trailer is found
+      return {
+        source: 'tmdb',
+        trailer: { link: 'https://www.youtube.com/embed/8p1rLKzYgfQ' },
+      };
+    } catch (error) {
+      throw new HttpException(
+        'Failed to fetch movie trailer',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+  
+
   
   // Get Genres
   async getGenres(): Promise<any> {
@@ -163,6 +204,35 @@ constructor(
       );
     }
   }
+
+  async wallmovies(page: number = 1): Promise<any> {
+    try {
+      const response = await axios.get(`${this.BASE_URL}/discover/movie`, {
+        params: { page },
+        headers: {
+          Authorization: this.API_TOKEN,
+          accept: 'application/json',
+        },
+      });
+  
+    
+      if (!response.data || !response.data.results) {
+        throw new HttpException(
+          'Unexpected API response structure from TMDb',
+          HttpStatus.BAD_GATEWAY,
+        );
+      }
+
+  
+      return response.data;
+    } catch (error) {
+      throw new HttpException(
+        'Failed to fetch movies from TMDb',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+  
   async searchMoviesByTitle(title: string): Promise<any> {
     if (!title) {
       throw new HttpException(
@@ -170,17 +240,17 @@ constructor(
         HttpStatus.BAD_REQUEST,
       );
     }
-
+  
     try {
       // First search in the local database
       const localMovies = await this.scrapingModel.find({
         title: new RegExp(title, 'i'), // Case-insensitive partial match
       });
-
+  
       if (localMovies.length > 0) {
         return { movies: localMovies };
       }
-
+  
       // If not found, search in TMDB
       const response = await axios.get(`${this.BASE_URL}/search/movie`, {
         params: {
@@ -191,8 +261,28 @@ constructor(
           Authorization: this.API_TOKEN,
         },
       });
-
-      return { source: 'tmdb', movies: response.data.results };
+  
+      const movies = response.data.results;
+      if (movies.length > 0) {
+        const movieId = movies[0].id;
+        
+        const trailerResponse = await axios.get(`${this.BASE_URL}/movie/${movieId}/videos`, {
+          headers: {
+            accept: 'application/json',
+            Authorization: this.API_TOKEN,
+          },
+        });
+  
+        const trailer = trailerResponse.data.results?.find((video) => video.type === 'Trailer');
+  
+        if (trailer) {
+          movies[0].trailer = trailer;
+        }
+  
+        return { source: 'tmdb', movies };
+      }
+  
+      return { source: 'tmdb', movies: [] };
     } catch (error) {
       throw new HttpException(
         'Failed to search movies from TMDb',
@@ -200,18 +290,19 @@ constructor(
       );
     }
   }
+  
   async moviesByLanguage() {
    
 
     return this.scrapingModel
-      .find({ language: 'Urdu' })  
+      .find({ language: 'Urdu' }).sort({createdAt:-1}) 
       .exec();
   }
 
   async HindiByLanguage() {
 
     return this.scrapingModel
-      .find({ language: 'Punjabi' })  
+      .find({ language: 'Punjabi' }).sort({createdAt:-1}) 
       .exec();
   }
 
@@ -230,7 +321,23 @@ constructor(
   async engetall() {
 
     return this.scrapingModel
-      .find({ language: 'English' })
-     .exec();  }
+      .find({ language: 'English' }).sort({createdAt:-1}) 
+     .exec(); 
+     }
+
+     async getRecommendations(movieId: string, language = 'en-US', page = 1): Promise<any> {
+      const url = `https://api.themoviedb.org/3/movie/${movieId}/recommendations?language=${language}&page=${page}`;
+      try {
+        const response = await axios.get(url, {
+          headers: {
+            Authorization: this.API_TOKEN,
+            'accept': 'application/json',
+          }
+          });
+        return response.data;
+      } catch (error) {
+        throw new Error(`Failed to fetch movie recommendations: ${error.message}`);
+      }
+    }
 
 }
