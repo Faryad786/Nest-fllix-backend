@@ -1,4 +1,4 @@
-import { Injectable, HttpException, HttpStatus, BadRequestException } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, BadRequestException, Delete, HttpCode } from '@nestjs/common';
 import axios from 'axios';
 
 import { Scraping } from './movies.model';
@@ -338,6 +338,19 @@ constructor(
       } catch (error) {
         throw new Error(`Failed to fetch movie recommendations: ${error.message}`);
       }
+    }
+    async deleteTodayRecords(): Promise<{ deletedCount: number }> {
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+  
+      const endOfDay = new Date();
+      endOfDay.setHours(23, 59, 59, 999);
+  
+      const result = await this.scrapingModel.deleteMany({
+        createdAt: { $gte: startOfDay, $lte: endOfDay },
+      });
+  
+      return { deletedCount: result.deletedCount };
     }
 
 }

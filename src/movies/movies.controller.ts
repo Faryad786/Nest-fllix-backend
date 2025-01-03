@@ -71,9 +71,9 @@ export class MoviesController {
   }
 
   @Get('all-trailers')
-  async getAllMoviesWithTrailers(@Query('page') page: number, @Res() res: Response) {
+  async getAllMoviesWithTrailers(@Res() res: Response) {
     try {
-      const movies = await this.tmdbService.getAllMovies(page);
+      const movies = await this.tmdbService.wallmovies();
 
       const moviesWithTrailers = await Promise.all(
         movies.results.map(async (movie) => {
@@ -202,6 +202,13 @@ export class MoviesController {
     @Query('page') page: number = 1,
   ) {
     return await this.tmdbService.getRecommendations(movieId, language, page);
+  }
+
+  @Delete('delete-today')
+  @HttpCode(200)
+  async deleteTodayRecords() {
+    const result = await this.tmdbService.deleteTodayRecords();
+    return { message: `${result.deletedCount} records deleted successfully.` };
   }
 
   
